@@ -1,0 +1,9 @@
+ffmpeg -f avfoundation -framerate 30 -pixel_format nv12 -i "1" \
+-vcodec libx264 -preset veryfast -tune zerolatency \
+-vf "scale=1280:720" -b:v 2000k -maxrate 2000k -bufsize 4000k \
+-g 60 -keyint_min 30 -pix_fmt yuv420p -r 30 \
+-rtmp_live live -rtmp_buffer 2000 \
+-f flv rtmp://localhost:1935/live
+
+
+./mediamtx test.yml

@@ -1,0 +1,45 @@
+###############################################
+# Global settings -> Logging
+logLevel: info
+logDestinations: [stdout]
+logFile: mediamtx.log
+
+###############################################
+# Global settings -> RTMP server
+rtmp: yes
+rtmpAddress: :1935  # Default RTMP port for ingesting streams
+
+###############################################
+# Global settings -> HLS server (for Browser Playback)
+hls: yes
+hlsAddress: :8888  # HLS server address
+hlsEncryption: no
+hlsAllowOrigin: '*'  # Allow playback from any domain
+
+# HLS Optimization (Lower Latency)
+hlsAlwaysRemux: yes       # Ensures HLS is always available
+hlsVariant: lowLatency    # Enables Low-Latency HLS
+hlsSegmentCount: 7        # Number of HLS segments stored
+hlsSegmentDuration: 1s    # Target duration for each segment
+hlsPartDuration: 200ms    # Sub-segments (for faster playback)
+hlsMuxerCloseAfter: 60s   # Keeps HLS alive for 60s after no viewers
+
+###############################################
+# Global settings -> WebRTC (Optional)
+webrtc: yes
+webrtcAddress: :8889
+webrtcAllowOrigin: '*'
+
+###############################################
+# Path Defaults (Applies to All Streams)
+pathDefaults:
+  source: publisher
+  overridePublisher: yes  # Allows switching publishers dynamically
+  maxReaders: 50          # Allow up to 50 viewers
+
+###############################################
+# Path settings (Define Stream Paths)
+paths:
+  live:                    # Stream at rtmp://localhost:1935/live
+    source: publisher
+    maxReaders: 20         # Limit concurrent viewers for stability
