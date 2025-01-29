@@ -22,3 +22,4 @@ go.work
 /node_modules
 /temp/target
 /temp/target
+/p2present/node_modules

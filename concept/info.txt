@@ -7,3 +7,6 @@ ffmpeg -f avfoundation -framerate 30 -pixel_format nv12 -i "1" \
 
 
 ./mediamtx test.yml
+
+
+http://127.0.0.1:5500/concept/index.html

@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 winit = "0.28"
+sys-info = "0.9"
