@@ -1,0 +1,30 @@
+{
+	"name": "electron-react-vite",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "./src/main/main.js",
+	"scripts": {
+		"dev": "concurrently \"npm run dev:react\" \"npm run dev:electron\"",
+		"dev:react": "cd renderer && npm run dev",
+		"dev:electron": "electron .",
+		"build": "cd renderer && npm run build && electron-builder",
+		"lint": "eslint .",
+		"preview": "cd renderer && npm run preview",
+		"start": "electron ."
+	},
+	"dependencies": {
+		"@libp2p/mdns": "^11.0.17",
+		"@libp2p/mplex": "^11.0.17",
+		"@libp2p/noise": "^12.0.1",
+		"@libp2p/tcp": "^10.0.15",
+		"concurrently": "^8.2.2",
+		"electron": "^34.0.1",
+		"electron-builder": "^25.1.8",
+		"libp2p": "^2.5.0",
+		"simple-peer": "^9.11.1"
+	},
+	"devDependencies": {
+		"eslint": "^9.17.0"
+	}
+}
