@@ -2,6 +2,10 @@ use winit::event_loop::EventLoop;
 use winit::monitor::MonitorHandle;
 
 fn main() {
+    test1();
+}
+
+fn test1() {
     // Get the OS
     println!("Operating System: {}", std::env::consts::OS);
 
@@ -24,3 +28,5 @@ fn main() {
         );
     }
 }
+
+fn test2() {}
