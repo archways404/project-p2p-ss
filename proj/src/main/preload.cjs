@@ -1,10 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-	startScreenShare: async () => {
-		const response = await ipcRenderer.invoke('start-screen-share');
-		console.log('Response from Electron:', response);
-		return response; // ✅ Ensure response stays JSON-safe
-	},
-	startViewer: (peerId) => ipcRenderer.invoke('start-viewer', peerId),
+	requestScreenShare: async (roomId) =>
+		await ipcRenderer.invoke('request-screen-share', roomId),
+	startViewer: async (roomId) =>
+		await ipcRenderer.invoke('start-viewer', roomId),
 });

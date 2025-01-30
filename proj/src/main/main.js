@@ -1,21 +1,20 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, session } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { startHost } from './host.js';
-import { startViewer } from './viewer.js';
+import WebSocket, { WebSocketServer } from 'ws';
 
-// ✅ Manually define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow;
 
+// ✅ Start Electron Window
 app.whenReady().then(() => {
 	mainWindow = new BrowserWindow({
 		width: 1000,
 		height: 700,
 		webPreferences: {
-			preload: path.join(__dirname, 'preload.cjs'), // ✅ Ensure correct path
+			preload: path.join(__dirname, 'preload.cjs'),
 			contextIsolation: true,
 			nodeIntegration: false,
 			enableRemoteModule: false,
@@ -24,21 +23,40 @@ app.whenReady().then(() => {
 
 	mainWindow.loadURL('http://localhost:5173');
 
-	ipcMain.handle('start-screen-share', async () => {
-		console.log('Starting screen share...');
-
-		try {
-			const result = await startHost();
-			return { success: true, ...result }; // ✅ Ensure it's a simple object
-		} catch (error) {
-			console.error('Screen share error:', error);
-			return { success: false, error: error.message }; // ✅ Send only JSON-safe data
-		}
+	session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+		callback({
+			responseHeaders: {
+				...details.responseHeaders,
+				'Content-Security-Policy': [
+					"default-src 'self' ws://localhost:8080 ws://localhost:5173; " +
+						"script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+						"style-src 'self' 'unsafe-inline'; " +
+						'connect-src ws://localhost:8080 ws://localhost:5173; ' +
+						"img-src 'self' data:;",
+				],
+			},
+		});
 	});
 
-	ipcMain.handle('start-viewer', async (_, peerId) => {
-		console.log('Starting viewer...');
-		return await startViewer(peerId);
+	// ✅ IPC for starting screen share in a room
+	ipcMain.handle('request-screen-share', async (_, roomId) => {
+		console.log(`📡 Start Screen Sharing in Room: ${roomId}`);
+
+		const stream = await mainWindow.webContents.executeJavaScript(
+			'navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true })'
+		);
+
+		return {
+			success: true,
+			message: `Screen sharing started in room ${roomId}`,
+			stream,
+		};
+	});
+
+	// ✅ IPC for starting viewer mode in a room
+	ipcMain.handle('start-viewer', async (_, roomId) => {
+		console.log(`🔍 Starting Viewer in Room: ${roomId}`);
+		return { success: true, message: `Viewer started in room ${roomId}` };
 	});
 
 	app.on('window-all-closed', () => {

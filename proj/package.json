@@ -22,7 +22,9 @@
 		"electron": "^34.0.1",
 		"electron-builder": "^25.1.8",
 		"libp2p": "^2.5.0",
-		"simple-peer": "^9.11.1"
+		"simple-peer": "^9.11.1",
+		"socket.io-client": "^4.8.1",
+		"websocket": "^1.0.35"
 	},
 	"devDependencies": {
 		"eslint": "^9.17.0"
