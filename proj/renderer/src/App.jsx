@@ -1,127 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const App = () => {
-	const [socket, setSocket] = useState(null);
-	const [roomId, setRoomId] = useState('');
-	const [isInRoom, setIsInRoom] = useState(false);
+	const [sources, setSources] = useState([]);
+	const [selectedSource, setSelectedSource] = useState(null);
 	const [isSharing, setIsSharing] = useState(false);
-	const [isViewing, setIsViewing] = useState(false);
 
-	const generateRoomId = () => Math.random().toString(36).substring(2, 8);
-
-	const createRoom = () => {
-		const newRoomId = generateRoomId();
-		setRoomId(newRoomId);
-		joinRoom(newRoomId);
-	};
-
-	const joinRoom = (room) => {
-		const ws = new WebSocket('ws://localhost:8080');
-
-		ws.onopen = () => {
-			console.log(`✅ Connected to WebSocket server, joining room: ${room}`);
-			ws.send(JSON.stringify({ type: 'join', room }));
-		};
-
-		ws.onmessage = (event) => {
-			const data = JSON.parse(event.data);
-			if (data.type === 'new-peer') {
-				console.log(`🔗 New peer connected: ${data.peerId}`);
-			}
-		};
-
-		ws.onclose = () => {
-			console.log('❌ Disconnected from WebSocket server.');
-		};
-
-		ws.onerror = (error) => {
-			console.error('⚠️ WebSocket error:', error);
-		};
-
-		setSocket(ws);
-		setRoomId(room);
-		setIsInRoom(true);
-	};
+	useEffect(() => {
+		// ✅ Fetch available screens when the app starts
+		window.electronAPI.getScreenSources().then(setSources);
+	}, []);
 
 	const startScreenShare = async () => {
-		if (!isInRoom || !socket) {
-			console.error('❌ Must join a room before screen sharing.');
+		if (!selectedSource) {
+			alert('❌ Please select a screen to share!');
 			return;
 		}
 
 		try {
-			const response = await window.electronAPI.requestScreenShare(roomId);
-			console.log(response);
-			if (response.success) setIsSharing(true);
-		} catch (error) {
-			console.error('❌ Failed to start screen share:', error);
-		}
-	};
+			const stream = await navigator.mediaDevices.getUserMedia({
+				video: {
+					mandatory: {
+						chromeMediaSource: 'desktop',
+						chromeMediaSourceId: selectedSource.id,
+						minWidth: 1280,
+						minHeight: 720,
+						maxWidth: 3840,
+						maxHeight: 2160,
+						minFrameRate: 30,
+						maxFrameRate: 120,
+					},
+				},
+				audio: {
+					mandatory: {
+						chromeMediaSource: 'desktop',
+					},
+				},
+			});
 
-	const startViewing = async () => {
-		if (!isInRoom || !socket) {
-			console.error('❌ Must join a room before viewing.');
-			return;
-		}
+			console.log('✅ Screen sharing started.', stream);
+			setIsSharing(true);
 
-		try {
-			const response = await window.electronAPI.startViewer(roomId);
-			console.log(response);
-			if (response.success) setIsViewing(true);
+			// Display video
+			const video = document.getElementById('screen-preview');
+			video.srcObject = stream;
+			video.play();
 		} catch (error) {
-			console.error('❌ Viewer connection failed:', error);
+			console.error('❌ Screen sharing error:', error);
+			alert(`Error: ${error.message}`);
 		}
 	};
 
 	return (
 		<div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
-			<h1 className="text-3xl font-bold">P2P Screen Sharing</h1>
+			<h1 className="text-3xl font-bold">P2P Screen Sharing (Electron)</h1>
 
-			{!isInRoom ? (
-				<div className="mt-4 flex flex-col items-center">
-					<button
-						className="px-6 py-2 bg-blue-500 rounded hover:bg-blue-600"
-						onClick={createRoom}>
-						Create Room
-					</button>
-					<p className="mt-2">or</p>
-					<input
-						type="text"
-						placeholder="Enter Room Code"
-						className="mt-2 p-2 text-black"
-						value={roomId}
-						onChange={(e) => setRoomId(e.target.value)}
-					/>
-					<button
-						className="mt-2 px-6 py-2 bg-green-500 rounded hover:bg-green-600"
-						onClick={() => joinRoom(roomId)}>
-						Join Room
-					</button>
-				</div>
-			) : (
-				<>
-					<p className="mt-4">
-						Room Code: <strong>{roomId}</strong>
-					</p>
-					<button
-						className={`mt-4 px-6 py-2 rounded ${
-							isSharing ? 'bg-gray-500' : 'bg-blue-500 hover:bg-blue-600'
-						}`}
-						onClick={startScreenShare}
-						disabled={isSharing}>
-						{isSharing ? 'Sharing Started' : 'Start Screen Sharing'}
-					</button>
+			{/* Screen Selection */}
+			<select
+				className="mt-4 p-2 bg-gray-700"
+				onChange={(e) =>
+					setSelectedSource(sources.find((src) => src.id === e.target.value))
+				}>
+				<option value="">Select a screen</option>
+				{sources.map((source) => (
+					<option
+						key={source.id}
+						value={source.id}>
+						{source.name}
+					</option>
+				))}
+			</select>
 
-					<button
-						className={`mt-4 px-6 py-2 rounded ${
-							isViewing ? 'bg-gray-500' : 'bg-green-500 hover:bg-green-600'
-						}`}
-						onClick={startViewing}
-						disabled={isViewing}>
-						{isViewing ? 'Viewing Started' : 'Start Viewing'}
-					</button>
-				</>
-			)}
+			<button
+				className={`mt-4 px-6 py-2 rounded ${
+					isSharing ? 'bg-gray-500' : 'bg-blue-500 hover:bg-blue-600'
+				}`}
+				onClick={startScreenShare}
+				disabled={isSharing}>
+				{isSharing ? 'Sharing Started' : 'Start Screen Sharing'}
+			</button>
+
+			{/* Screen Preview */}
+			<video
+				id="screen-preview"
+				className="mt-4 w-2/3"></video>
 		</div>
 	);
 };

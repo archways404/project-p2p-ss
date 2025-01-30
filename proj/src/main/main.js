@@ -1,4 +1,10 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import {
+	app,
+	BrowserWindow,
+	ipcMain,
+	desktopCapturer,
+	session,
+} from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import WebSocket, { WebSocketServer } from 'ws';
@@ -15,13 +21,23 @@ app.whenReady().then(() => {
 		height: 700,
 		webPreferences: {
 			preload: path.join(__dirname, 'preload.cjs'),
-			contextIsolation: true,
-			nodeIntegration: false,
+			contextIsolation: true, // ✅ Allow `navigator.mediaDevices`
+			nodeIntegration: false, // ✅ Prevent security issues
 			enableRemoteModule: false,
+			sandbox: false, // ✅ Electron sandbox blocks screen capture (disable it)
+			webSecurity: false, // ✅ Allow media access
 		},
 	});
 
 	mainWindow.loadURL('http://localhost:5173');
+
+	// ✅ Set media request handler (Allows screen sharing)
+	session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+		desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
+			console.log('🖥️ Available Screens:', sources);
+			callback({ video: sources[0], audio: 'loopback' }); // ✅ Automatically grants screen access
+		});
+	});
 
 	session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
 		callback({
@@ -38,19 +54,16 @@ app.whenReady().then(() => {
 		});
 	});
 
-	// ✅ IPC for starting screen share in a room
-	ipcMain.handle('request-screen-share', async (_, roomId) => {
-		console.log(`📡 Start Screen Sharing in Room: ${roomId}`);
-
-		const stream = await mainWindow.webContents.executeJavaScript(
-			'navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true })'
-		);
-
-		return {
-			success: true,
-			message: `Screen sharing started in room ${roomId}`,
-			stream,
-		};
+	// ✅ Handle IPC request to get screen sources
+	ipcMain.handle('get-screen-sources', async () => {
+		const sources = await desktopCapturer.getSources({
+			types: ['screen', 'window'],
+		});
+		return sources.map((source) => ({
+			id: source.id,
+			name: source.name,
+			thumbnail: source.thumbnail.toDataURL(),
+		}));
 	});
 
 	// ✅ IPC for starting viewer mode in a room
